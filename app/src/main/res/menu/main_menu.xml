@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/menu_highlight"
+      android:icon="@android:drawable/btn_plus"
+      android:title="Highlight"/>
+    <item android:id="@+id/menu_unknown"
+        android:icon="@android:drawable/btn_star"
+        android:title="Extract unknown"/>
+    <item android:id="@+id/menu_text"
+        android:icon="@android:drawable/btn_star"
+        android:title="Text"/>
+    <item android:id="@+id/menu_exit"
+        android:icon="@android:drawable/btn_minus"
+        android:title="Exit"/>
+</menu>
