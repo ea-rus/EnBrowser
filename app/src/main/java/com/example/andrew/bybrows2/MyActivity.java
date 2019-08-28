@@ -30,6 +30,7 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 
+import java.sql.Array;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -67,8 +68,9 @@ public class MyActivity extends Activity {
 
 
 
-    public void alert(final String text) {
-        new AlertDialog.Builder(this).setMessage (Html.fromHtml(text)).setNegativeButton("As text",
+    public void alert(final String text, final ArrayList<String> wordForms) {
+
+        AlertDialog.Builder dialog =  new AlertDialog.Builder(this).setMessage (Html.fromHtml(text)).setNegativeButton("As text",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         dialog.cancel();
@@ -87,8 +89,94 @@ public class MyActivity extends Activity {
                         dialog.cancel();
                     }
                 }
-        ).show();
+        );
 
+        for (int i=0; i<wordForms.size(); i++){
+            final String word = wordForms.get(i);
+
+            dialog = dialog.setNeutralButton(word,
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            translateAlert(word);
+                        }
+            });
+        }
+
+        dialog.show();
+
+    }
+
+    public void translateAlert(final String word) {
+        String msg = makeTranslate(word);
+
+        ArrayList<String> wordForms = checkWordForms(word);
+
+        if (! msg.equals("") || ! wordForms.isEmpty()) {
+            alert(msg, wordForms);
+        }else {
+            Toast toast = Toast.makeText(getApplicationContext(),
+                    "Translate not found: "+word, Toast.LENGTH_SHORT);
+            toast.show();
+        }
+    }
+
+    public ArrayList<String> checkWordForms(String word){
+
+        ArrayList<String> founded = new ArrayList<String>();
+        String word0;
+
+        // check past form
+        if (word.endsWith("ed")){
+            word0 = word.substring(0, word.length()-1);
+            if (wordExist(word0))  founded.add(word0);
+
+            word0 = word.substring(0, word.length()-2);
+            if (wordExist(word0)) founded.add(word0);
+        }
+
+        // check plural
+        if (word.endsWith("es")) {
+            word0 = word.substring(0, word.length() - 2);
+            if (wordExist(word0))  founded.add(word0);
+        }
+        if (word.endsWith("s")) {
+            word0 = word.substring(0, word.length()-1);
+            if (wordExist(word0))  founded.add(word0);
+        }
+
+        // check gerund
+        if (word.endsWith("ing")) {
+            word0 = word.substring(0, word.length() - 3);
+            if (wordExist(word0))  founded.add(word0);
+
+            word0 = word.substring(0, word.length()-3) + 'e';
+            if (wordExist(word0))  founded.add(word0);
+        }
+
+        return founded;
+    }
+
+    public Boolean wordExist(String word){
+
+        SQLiteDatabase db;
+        try {
+            db = SQLiteDatabase.openDatabase(DB_PATH, null, SQLiteDatabase.OPEN_READONLY);
+        }catch (SQLiteException e){
+            Toast toast = Toast.makeText(getApplicationContext(),
+                    "base not found :" + DB_PATH, Toast.LENGTH_SHORT);
+            toast.show();
+            return false;
+        }
+
+        String[] args = {};
+        Cursor cursor = db.rawQuery("select caseword from dictionary where word = '"+word+"' ", args);
+
+        int count = cursor.getCount();
+
+        cursor.close();
+        db.close();
+
+        return count>0;
     }
 
     @Override
@@ -126,7 +214,7 @@ public class MyActivity extends Activity {
         }
 
         String[] args = {};
-        Cursor cursor = db.rawQuery("select caseword, substr(descr,0,300) descr from dictionary where word = '"+word+"' ", args);
+        Cursor cursor = db.rawQuery("select caseword, substr(descr,0,500) descr from dictionary where word = '"+word+"' ", args);
 
         String rus="";
 
@@ -146,11 +234,8 @@ public class MyActivity extends Activity {
         cursor.close();
         db.close();
 
-        if (out==""){
-            Toast toast = Toast.makeText(getApplicationContext(),
-                    "Translate not found: "+word, Toast.LENGTH_SHORT);
-            toast.show();
-        }else{
+        if (out!=""){
+
             db = null;
             try {
                 db = SQLiteDatabase.openDatabase(DB_PATH_MY, null, SQLiteDatabase.OPEN_READWRITE);
@@ -379,10 +464,7 @@ public class MyActivity extends Activity {
         class JsObject {
             @JavascriptInterface
             public void translate(String word) {
-                    String msg = makeTranslate(word);
-                    if (msg != "") {
-                        alert(msg);
-                    }
+                    translateAlert(word);
             }
 
             @JavascriptInterface

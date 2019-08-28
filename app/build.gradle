@@ -6,7 +6,7 @@ repositories {
 
 android {
     compileSdkVersion 21
-    buildToolsVersion '21'
+    buildToolsVersion '26.0.2'
 
     defaultConfig {
         applicationId "com.example.andrew.bybrows2"
