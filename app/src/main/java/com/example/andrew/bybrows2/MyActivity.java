@@ -25,8 +25,10 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -70,40 +72,70 @@ public class MyActivity extends Activity {
 
     public void alert(final String text, final ArrayList<String> wordForms) {
 
-        AlertDialog.Builder dialog =  new AlertDialog.Builder(this).setMessage (Html.fromHtml(text)).setNegativeButton("As text",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        dialog.cancel();
 
-                        myWebView.post(new Runnable() {
-                            public void run() {
-                                String HTML = LoadText.makeHTML(getApplicationContext(), text, "");
-                                myWebView.loadDataWithBaseURL("", HTML, "text/html", "UTF-8", "");
+        LinearLayout parent = new LinearLayout(this);
+
+        parent.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        parent.setOrientation(LinearLayout.VERTICAL);
+
+//children of parent linearlayout
+
+        TextView tv1 = new TextView(this);
+        tv1.setText(Html.fromHtml(text));
+        parent.addView(tv1);
+
+        LinearLayout layout2 = new LinearLayout(this);
+
+        layout2.setLayoutParams(new LinearLayout.LayoutParams (
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        layout2.setOrientation(LinearLayout.HORIZONTAL);
+        parent.addView(layout2);
+
+
+
+        final AlertDialog dialog =  new AlertDialog.Builder(this)
+                .setView(parent)
+                .setNegativeButton("As text",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+
+                                myWebView.post(new Runnable() {
+                                    public void run() {
+                                        String HTML = LoadText.makeHTML(getApplicationContext(), text, "");
+                                        myWebView.loadDataWithBaseURL("", HTML, "text/html", "UTF-8", "");
+                                    }
+                                });
                             }
-                        });
-                    }
-                }
-        ).setPositiveButton("ОК",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        dialog.cancel();
-                    }
-                }
-        );
+                        }
+                ).setPositiveButton("ОК",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+                        }
+                ).show();
 
         for (int i=0; i<wordForms.size(); i++){
             final String word = wordForms.get(i);
 
-            dialog = dialog.setNeutralButton(word,
-                    new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            translateAlert(word);
-                        }
+            Button button1 = new Button(this);
+            button1.setText(word);
+
+            button1.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dialog.cancel();
+                    translateAlert(word);
+                }
             });
+
+            layout2.addView(button1);
+
         }
-
-        dialog.show();
-
     }
 
     public void translateAlert(final String word) {
@@ -156,7 +188,10 @@ public class MyActivity extends Activity {
         return founded;
     }
 
+
+
     public Boolean wordExist(String word){
+
 
         SQLiteDatabase db;
         try {
@@ -214,7 +249,7 @@ public class MyActivity extends Activity {
         }
 
         String[] args = {};
-        Cursor cursor = db.rawQuery("select caseword, substr(descr,0,500) descr from dictionary where word = '"+word+"' ", args);
+        Cursor cursor = db.rawQuery("select caseword, substr(descr,0,600) descr from dictionary where word = '"+word+"' ", args);
 
         String rus="";
 
