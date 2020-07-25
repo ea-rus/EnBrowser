@@ -38,6 +38,8 @@
                 android:layout_width="60dp"
                 android:layout_height="match_parent"
                 android:text="Menu"
+                android:background="#666666"
+                android:textColor="#ffffff"
                 android:id="@+id/button_menu"
                 android:textSize="12dp" />
 
@@ -58,20 +60,24 @@
 
 
             <EditText
+                android:id="@+id/editText_url"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:id="@+id/editText_url"
-                android:singleLine="true"
                 android:layout_weight="1"
+                android:background="#000000"
+                android:textColor="#999999"
                 android:selectAllOnFocus="true"
+                android:singleLine="true"
                 android:text="http://ya.ru"
-                android:textSize="12dp"
-                android:textIsSelectable="false" />
+                android:textIsSelectable="false"
+                android:textSize="12dp" />
 
             <Button
                 android:layout_width="30dp"
                 android:layout_height="match_parent"
                 android:text=">"
+                android:background="#666666"
+                android:textColor="#ffffff"
                 android:id="@+id/button_go"
                 android:textSize="12dp" />
 

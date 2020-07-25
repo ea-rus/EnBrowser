@@ -70,7 +70,11 @@ public class MyActivity extends Activity {
 
 
 
-    public void alert(final String text, final ArrayList<String> wordForms) {
+    public void alert(final String word,
+                final String text, 
+                final ArrayList<String> wordForms,
+                final ArrayList<String> suffixes
+    ) {
 
 
         LinearLayout parent = new LinearLayout(this);
@@ -120,16 +124,35 @@ public class MyActivity extends Activity {
                 ).show();
 
         for (int i=0; i<wordForms.size(); i++){
-            final String word = wordForms.get(i);
+            final String word2 = wordForms.get(i);
 
             Button button1 = new Button(this);
-            button1.setText(word);
+            button1.setText(word2);
 
             button1.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     dialog.cancel();
-                    translateAlert(word);
+                    translateAlert(word2);
+                }
+            });
+
+            layout2.addView(button1);
+
+        }
+        // phrasal verbs
+        
+         for (int i=0; i<suffixes.size(); i++){
+            final String suffix = suffixes.get(i);
+
+            Button button1 = new Button(this);
+            button1.setText(suffix);
+
+            button1.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dialog.cancel();
+                    phrasalShow(word, suffix);
                 }
             });
 
@@ -139,19 +162,88 @@ public class MyActivity extends Activity {
     }
 
     public void translateAlert(final String word) {
-        String msg = makeTranslate(word);
+        String word2=word.toLowerCase().trim();
+        String msg = makeTranslate(word2);
 
-        ArrayList<String> wordForms = checkWordForms(word);
+        ArrayList<String> wordForms = checkWordForms(word2);
+        ArrayList<String> suffixes = phrasalCheck(word2);
+
 
         if (! msg.equals("") || ! wordForms.isEmpty()) {
-            alert(msg, wordForms);
+            alert(word2, msg, wordForms, suffixes);
         }else {
             Toast toast = Toast.makeText(getApplicationContext(),
                     "Translate not found: "+word, Toast.LENGTH_SHORT);
             toast.show();
         }
     }
+    
+    
+    
+    public ArrayList<String> phrasalCheck(String word){
 
+        ArrayList<String> founded = new ArrayList<String>();
+        SQLiteDatabase db;
+        try {
+            db = SQLiteDatabase.openDatabase(DB_PATH, null, SQLiteDatabase.OPEN_READONLY);
+        }catch (SQLiteException e){
+            Toast toast = Toast.makeText(getApplicationContext(),
+                    "base not found :" + DB_PATH, Toast.LENGTH_SHORT);
+            toast.show();
+            return founded;
+        }
+
+        String[] args = {};
+        Cursor cursor = db.rawQuery("select distinct suffix from pras_verb where verb = '"+word+"' ", args);
+
+        cursor.moveToFirst();
+        for (int i = 0; i < cursor.getCount(); i++) {
+            String suffix = cursor.getString(cursor.getColumnIndex("suffix"));
+            founded.add(suffix);
+        }
+
+        cursor.close();
+        db.close();
+        
+        return founded;
+    }
+
+    public void phrasalShow(String word, String suffix){
+        
+
+        SQLiteDatabase db;
+        try {
+            db = SQLiteDatabase.openDatabase(DB_PATH, null, SQLiteDatabase.OPEN_READONLY);
+        }catch (SQLiteException e){
+            Toast toast = Toast.makeText(getApplicationContext(),
+                    "base not found :" + DB_PATH, Toast.LENGTH_SHORT);
+            toast.show();
+            return;
+        }
+
+        String[] args = {};
+        String out = "";
+        Cursor cursor = db.rawQuery("select meaning, example from pras_verb where verb='"+word+"' and suffix='"+suffix+"' ", args);
+
+        cursor.moveToFirst();
+        for (int i = 0; i < cursor.getCount(); i++) {
+            String meaning = cursor.getString(cursor.getColumnIndex("meaning"));
+            String example = cursor.getString(cursor.getColumnIndex("example"));
+            out += meaning;
+            out += "<br> Example: " + example;
+            out += "<br><br>";
+            
+        }
+
+        cursor.close();
+        db.close();
+        
+        ArrayList<String> wordForms = new ArrayList<String>();
+        ArrayList<String> suffixes = new ArrayList<String>();
+        alert(word, out, wordForms, suffixes);
+       
+    }
+    
     public ArrayList<String> checkWordForms(String word){
 
         ArrayList<String> founded = new ArrayList<String>();
@@ -204,7 +296,7 @@ public class MyActivity extends Activity {
         }
 
         String[] args = {};
-        Cursor cursor = db.rawQuery("select caseword from dictionary where word = '"+word+"' ", args);
+        Cursor cursor = db.rawQuery("select caseword from dict_en where word = '"+word+"' ", args);
 
         int count = cursor.getCount();
 
@@ -236,7 +328,7 @@ public class MyActivity extends Activity {
     public String makeTranslate(String word) {
 
 
-        word=word.toLowerCase().trim();
+        
 
         SQLiteDatabase db;
         try {
@@ -249,7 +341,7 @@ public class MyActivity extends Activity {
         }
 
         String[] args = {};
-        Cursor cursor = db.rawQuery("select caseword, substr(descr,0,600) descr from dictionary where word = '"+word+"' ", args);
+        Cursor cursor = db.rawQuery("select caseword, substr(descr,0,600) descr from dict_en where word = '"+word+"' ", args);
 
         String rus="";
 
