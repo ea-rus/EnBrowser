@@ -44,7 +44,7 @@ import java.util.Date;
 
 public class MyActivity extends Activity {
 
-    static String DB_PATH="/storage/emulated/0/_my/dictEN-RU.db";
+    static String DB_PATH="/storage/emulated/0/_my/dictEN-RU1.db";
 
     static String DB_PATH_MY="/storage/emulated/0/_my/top3k.db";
 
@@ -161,7 +161,29 @@ public class MyActivity extends Activity {
         }
     }
 
+    SQLiteDatabase db_dict;
+    SQLiteDatabase db_my;
+
     public void translateAlert(final String word) {
+
+
+        try {
+            db_dict = SQLiteDatabase.openDatabase(DB_PATH, null, SQLiteDatabase.OPEN_READONLY);
+        }catch (SQLiteException e){
+            Toast toast = Toast.makeText(getApplicationContext(),
+                    "base not found :" + DB_PATH, Toast.LENGTH_SHORT);
+            toast.show();
+            return ;
+        }
+
+        try {
+            db_my = SQLiteDatabase.openDatabase(DB_PATH_MY, null, SQLiteDatabase.OPEN_READWRITE);
+        }catch (SQLiteException e){
+            Toast toast = Toast.makeText(getApplicationContext(), "base not found :" + MyActivity.DB_PATH_MY, Toast.LENGTH_SHORT);
+            toast.show();
+        }
+
+
         String word2=word.toLowerCase().trim();
         String msg = makeTranslate(word2);
 
@@ -176,6 +198,9 @@ public class MyActivity extends Activity {
                     "Translate not found: "+word, Toast.LENGTH_SHORT);
             toast.show();
         }
+
+        db_dict.close();
+        db_my.close();
     }
     
     
@@ -183,18 +208,9 @@ public class MyActivity extends Activity {
     public ArrayList<String> phrasalCheck(String word){
 
         ArrayList<String> founded = new ArrayList<String>();
-        SQLiteDatabase db;
-        try {
-            db = SQLiteDatabase.openDatabase(DB_PATH, null, SQLiteDatabase.OPEN_READONLY);
-        }catch (SQLiteException e){
-            Toast toast = Toast.makeText(getApplicationContext(),
-                    "base not found :" + DB_PATH, Toast.LENGTH_SHORT);
-            toast.show();
-            return founded;
-        }
 
         String[] args = {};
-        Cursor cursor = db.rawQuery("select distinct suffix from pras_verb where verb = '"+word+"' ", args);
+        Cursor cursor = db_dict.rawQuery("select distinct suffix from pras_verb where verb = '"+word+"' ", args);
 
         cursor.moveToFirst();
         for (int i = 0; i < cursor.getCount(); i++) {
@@ -203,17 +219,15 @@ public class MyActivity extends Activity {
         }
 
         cursor.close();
-        db.close();
-        
+
         return founded;
     }
 
     public void phrasalShow(String word, String suffix){
         
 
-        SQLiteDatabase db;
         try {
-            db = SQLiteDatabase.openDatabase(DB_PATH, null, SQLiteDatabase.OPEN_READONLY);
+            db_dict = SQLiteDatabase.openDatabase(DB_PATH, null, SQLiteDatabase.OPEN_READONLY);
         }catch (SQLiteException e){
             Toast toast = Toast.makeText(getApplicationContext(),
                     "base not found :" + DB_PATH, Toast.LENGTH_SHORT);
@@ -223,25 +237,24 @@ public class MyActivity extends Activity {
 
         String[] args = {};
         String out = "";
-        Cursor cursor = db.rawQuery("select meaning, example from pras_verb where verb='"+word+"' and suffix='"+suffix+"' ", args);
+        Cursor cursor = db_dict.rawQuery("select meaning from pras_verb where verb='"+word+"' and suffix='"+suffix+"' ", args);
 
         cursor.moveToFirst();
         for (int i = 0; i < cursor.getCount(); i++) {
             String meaning = cursor.getString(cursor.getColumnIndex("meaning"));
-            String example = cursor.getString(cursor.getColumnIndex("example"));
             out += meaning;
-            out += "<br> Example: " + example;
-            out += "<br><br>";
-            
+            out += "<br>";
+
         }
 
-        cursor.close();
-        db.close();
-        
         ArrayList<String> wordForms = new ArrayList<String>();
         ArrayList<String> suffixes = new ArrayList<String>();
         alert(word, out, wordForms, suffixes);
-       
+
+        cursor.close();
+        db_dict.close();
+
+
     }
     
     public ArrayList<String> checkWordForms(String word){
@@ -284,24 +297,12 @@ public class MyActivity extends Activity {
 
     public Boolean wordExist(String word){
 
-
-        SQLiteDatabase db;
-        try {
-            db = SQLiteDatabase.openDatabase(DB_PATH, null, SQLiteDatabase.OPEN_READONLY);
-        }catch (SQLiteException e){
-            Toast toast = Toast.makeText(getApplicationContext(),
-                    "base not found :" + DB_PATH, Toast.LENGTH_SHORT);
-            toast.show();
-            return false;
-        }
-
         String[] args = {};
-        Cursor cursor = db.rawQuery("select caseword from dict_en where word = '"+word+"' ", args);
+        Cursor cursor = db_dict.rawQuery("select caseword from dictionary where word = '"+word+"' ", args);
 
         int count = cursor.getCount();
 
         cursor.close();
-        db.close();
 
         return count>0;
     }
@@ -328,20 +329,8 @@ public class MyActivity extends Activity {
     public String makeTranslate(String word) {
 
 
-        
-
-        SQLiteDatabase db;
-        try {
-            db = SQLiteDatabase.openDatabase(DB_PATH, null, SQLiteDatabase.OPEN_READONLY);
-        }catch (SQLiteException e){
-            Toast toast = Toast.makeText(getApplicationContext(),
-                    "base not found :" + DB_PATH, Toast.LENGTH_SHORT);
-            toast.show();
-            return "";
-        }
-
         String[] args = {};
-        Cursor cursor = db.rawQuery("select caseword, substr(descr,0,600) descr from dict_en where word = '"+word+"' ", args);
+        Cursor cursor = db_dict.rawQuery("select caseword, substr(descr,0,600) descr from dictionary where word = '"+word+"' ", args);
 
         String rus="";
 
@@ -359,22 +348,13 @@ public class MyActivity extends Activity {
             cursor.moveToNext();
         }
         cursor.close();
-        db.close();
 
         if (out!=""){
 
-            db = null;
-            try {
-                db = SQLiteDatabase.openDatabase(DB_PATH_MY, null, SQLiteDatabase.OPEN_READWRITE);
-            }catch (SQLiteException e){
-                Toast toast = Toast.makeText(getApplicationContext(), "base not found :" + MyActivity.DB_PATH_MY, Toast.LENGTH_SHORT);
-                toast.show();
-            }
 
-            if (db!=null) {
                 String[] args2 = {eng};
 
-                cursor = db.rawQuery("select state, count, id from words where eng =?", args2);
+                cursor = db_my.rawQuery("select state, count, id from words where eng =?", args2);
 
                 cursor.moveToFirst();
 
@@ -386,7 +366,7 @@ public class MyActivity extends Activity {
 
                     String[] args3 = {eng, rus, stringTime};
 
-                    cursor = db.rawQuery("insert into words (id, eng,rus,state, lastdate, count) " +
+                    cursor = db_my.rawQuery("insert into words (id, eng,rus,state, lastdate, count) " +
                             "values( (select max(id)+1 from words), ?, ?, 'A', ?, 1)", args3);
                     cursor.moveToFirst();
                 }else{
@@ -404,15 +384,14 @@ public class MyActivity extends Activity {
 
                     String[] args3 = {stringTime, count.toString(), id.toString()};
 
-                    cursor = db.rawQuery("update words set lastdate=?, count=? where id= ?", args3);
+                    cursor = db_my.rawQuery("update words set lastdate=?, count=? where id= ?", args3);
                     cursor.moveToFirst();
 
                     out="Count: "+count.toString() + "<br>" + out;
                 }
 
                 cursor.close();
-                db.close();
-            }
+
         }
 
         return out;
